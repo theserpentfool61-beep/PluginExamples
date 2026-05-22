@@ -172,56 +172,6 @@ function ResetBots()
 end
 
 
-function randomizeTeams()
-    if not hasServerInitialized then
-        return
-    end
-
-    local randomTeamTable = {}
-    local playerCount = getPlayerCount()
-
-    if playerCount < 2 then
-        Console.Execute("Kyber.Broadcast **KYBER:** Skipped team shuffle. (More than 2 players required)")
-        return
-    end
-
-    -- Fill randomTeamTable 
-    for i = 1, playerCount - (playerCount // 2), 1 do
-        table.insert(randomTeamTable, 1)
-    end
-    for i = (playerCount - (playerCount // 2)) + 1, playerCount, 1 do
-        table.insert(randomTeamTable, 2)
-    end
-
-    -- Shuffles inputted table (https://stackoverflow.com/questions/35572435/how-do-you-do-the-fisher-yates-shuffle-in-lua)
-    local function shuffleTable(t)
-        for i = #t, 2, -1 do
-            local j = math.random(i)
-            t[i], t[j] = t[j], t[i]
-        end
-    end
-
-    shuffleTable(randomTeamTable)
-
-    -- Set teams
-    local players = PlayerManager.GetPlayers()
-    local i = 1
-    for _, player in ipairs(players) do
-        if player.isBot then
-            goto continue
-        end
-
-        player:SetTeam(randomTeamTable[i])
-        print(string.format("Debug: Put player '%s' on team '%d'", player.name, randomTeamTable[i]))
-        i = i + 1
-        ::continue::
-    end
-    
-    -- Disabled message because of chat spam
-    -- Console.Execute("Kyber.Broadcast Successfully randomized teams!")
-
-end
-
 -- This event is triggered when a level is loaded.
 -- The game modes will have been loaded by this point,
 -- so we can determine the max player count of the mode.
@@ -252,20 +202,17 @@ EventManager.Listen("Level:Loaded", function(levelName, gameModeId)
 
     print("Disabled traditional team balancing in favor for Kyber team balancing.")
 
-    -- Randomizing teams
-    randomizeTeams()
-
+    -- Enable built-in team shuffling
+    kyberSettings.enableShuffleTeams = true
 end)
-
--- Team balancing
 
 -- Finds the best fit team by looking at both team player counts
 -- If equal, set team to first
 function balancePlayer(player)
     local teamCounts = getTeamCounts()
 
-    if teamCounts[1] > teamCounts[2] then 
-        player:SetTeam(2) 
+    if teamCounts[1] > teamCounts[2] then
+        player:SetTeam(2)
     else
         -- then teams are either equal (which we want to set to team 1) or
         -- Team 2 has more and we want to set to team 1
@@ -292,3 +239,56 @@ EventManager.Listen("Server:PlayerJoined", function(player)
 
     balancePlayer(player)
 end)
+
+-- Deprecated: Team shuffling
+-- Kyber now has a built-in shuffle teams feature that accounts for parties/squads
+-- Keeping for legacy purposes
+
+function randomizeTeams()
+    if not hasServerInitialized then
+        return
+    end
+
+    local randomTeamTable = {}
+    local playerCount = getPlayerCount()
+
+    if playerCount < 2 then
+        Console.Execute("Kyber.Broadcast **KYBER:** Skipped team shuffle. (More than 2 players required)")
+        return
+    end
+
+    -- Fill randomTeamTable
+    for i = 1, playerCount - (playerCount // 2), 1 do
+        table.insert(randomTeamTable, 1)
+    end
+    for i = (playerCount - (playerCount // 2)) + 1, playerCount, 1 do
+        table.insert(randomTeamTable, 2)
+    end
+
+    -- Shuffles inputted table (https://stackoverflow.com/questions/35572435/how-do-you-do-the-fisher-yates-shuffle-in-lua)
+    local function shuffleTable(t)
+        for i = #t, 2, -1 do
+            local j = math.random(i)
+            t[i], t[j] = t[j], t[i]
+        end
+    end
+
+    shuffleTable(randomTeamTable)
+
+    -- Set teams
+    local players = PlayerManager.GetPlayers()
+    local i = 1
+    for _, player in ipairs(players) do
+        if player.isBot then
+            goto continue
+        end
+
+        player:SetTeam(randomTeamTable[i])
+        print(string.format("Debug: Put player '%s' on team '%d'", player.name, randomTeamTable[i]))
+        i = i + 1
+        ::continue::
+    end
+
+    -- Disabled message because of chat spam
+    -- Console.Execute("Kyber.Broadcast Successfully randomized teams!")
+end
